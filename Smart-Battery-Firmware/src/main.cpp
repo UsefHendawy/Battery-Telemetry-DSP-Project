@@ -39,7 +39,7 @@ void loop() {
 rawADCValue = analogRead(ANALOG_INPUT_PIN);
 
 // Convert to voltage and multiply by 2 to reverse the resistor divider drop
-voltageReading = ((rawADCValue * 3.3) / 4095.0) * 100;200
+voltageReading = ((rawADCValue * 3.3) / 4095.0) * 2;200
   
   // 3. Stream raw values over serial pipeline to python script
   Serial.println(rawADCValue);
