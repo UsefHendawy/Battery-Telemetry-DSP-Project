@@ -35,11 +35,11 @@ void setup() {
 }
 
 void loop() {
-  // 1. High-speed sampling of the electrochemical raw voltage signature
-  rawADCValue = analogRead(ANALOG_INPUT_PIN);
-  
-  // 2. Convert the 12-bit digital value (0-4095) back to a localized voltage scalar
-  voltageReading = (rawADCValue * 3.3) / 4095.0;
+// Read the 12-bit value (0-4095)
+rawADCValue = analogRead(ANALOG_INPUT_PIN);
+
+// Convert to voltage and multiply by 2 to reverse the resistor divider drop
+voltageReading = ((rawADCValue * 3.3) / 4095.0) * 100;200
   
   // 3. Stream raw values over serial pipeline to python script
   Serial.println(rawADCValue);
