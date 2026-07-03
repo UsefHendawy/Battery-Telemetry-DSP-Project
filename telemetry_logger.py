@@ -20,7 +20,7 @@ OUTPUT_DATABASE_FILE = "telemetry_features_db.csv"  # Target dataset file
 TARGET_MODE = "HIGH_VOLTAGE_BATTERY" 
 
 if TARGET_MODE == "HIGH_VOLTAGE_BATTERY":
-    CURRENT_SOURCE_LABEL = "9V_ALKALINE_BATTERY"
+    CURRENT_SOURCE_LABEL = "9V_ZINC_CARBON_BATTERY_HEALTHY"
 else:
     CURRENT_SOURCE_LABEL = "PRISMATIC_BATTERY"
 
@@ -100,26 +100,34 @@ try:
     while True:
         samples_collected = 0
         # Ingest a clean full array slice window from the serial bus queue
+        # Ingest a clean full array slice window from the serial bus queue
         while samples_collected < MAX_SAMPLES:
             if ser.in_waiting > 0:
                 try:
-                    packet_line = ser.readline().decode('utf-8').strip() # Capture and translate bit lines [cite: 1258, 1259, 1260]
-                    if packet_line.isdigit():
-                        raw_adc = int(packet_line)
+                    packet_line = ser.readline().decode('utf-8').strip()
+                    
+                    # Check if the incoming packet contains our dual-channel comma split
+                    if "," in packet_line:
+                        # Split the string into distinct low-voltage and high-voltage string tokens
+                        low_str, high_str = packet_line.split(",")
                         
-                        # SYSTEM ADAPTIVE CALIBRATION MATRIX MATH
-                        if TARGET_MODE == "LOW_VOLTAGE_CELL":
-                            # Reverse standard 10k/10k series split (Inverse factor = 2.0) [cite: 1012, 1263]
+                        # SYSTEM ADAPTIVE PARSING MATRIX
+                        if TARGET_MODE == "LOW_VOLTAGE_CELL" and low_str.isdigit():
+                            raw_adc = int(low_str)
+                            # Reverse standard 10k/10k hardware division (Multiply by 2.0)
                             true_voltage = ((raw_adc * 3.3) / 4095.0) * 2.0
-                        else:
-                            # HIGH VOLTAGE 9V MODE: Reverse 22k/10k series divider split
-                            # Attenuation ratio = 10k / (22k + 10k) = 0.3125. Inverse scaling factor = 3.2! [cite: 1384]
-                            true_voltage = ((raw_adc * 3.3) / 4095.0) * 3.2
                             
-                        raw_buffer.append(true_voltage) # Queue newest calibrated metric line [cite: 1220, 1264]
+                        elif TARGET_MODE == "HIGH_VOLTAGE_BATTERY" and high_str.isdigit():
+                            raw_adc = int(high_str)
+                            # HIGH VOLTAGE 9V MODE: Reverse 22k/10k series divider split (Multiply by 3.2)
+                            true_voltage = ((raw_adc * 3.3) / 4095.0) * 3.2
+                        else:
+                            continue # Skip row if formatting mismatches
+                            
+                        raw_buffer.append(true_voltage) # Queue calibrated metric line
                         samples_collected += 1
                 except Exception:
-                    pass # Protect the pipeline array loops against garbled/incomplete serial bits [cite: 1261]
+                    pass # Shield loop against garbled serial bits
         
         # Signal conditioning: Run full array vector frame slice through SciPy Median Filter [cite: 1265, 1266]
         filtered_array = signal.medfilt(np.array(raw_buffer), kernel_size=5) # Clean raw tracking static [cite: 1179, 1265, 1266]
