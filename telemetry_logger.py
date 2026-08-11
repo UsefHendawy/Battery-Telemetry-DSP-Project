@@ -20,9 +20,9 @@ OUTPUT_DATABASE_FILE = "telemetry_features_db.csv"  # Target dataset file
 TARGET_MODE = "LOW_VOLTAGE_CELL" 
 
 if TARGET_MODE == "HIGH_VOLTAGE_BATTERY":
-    CURRENT_SOURCE_LABEL = "9V_ALKALINE_BATTERY_HEALTHY"
+    CURRENT_SOURCE_LABEL = "SUPER_CAPACITOR"
 else:
-    CURRENT_SOURCE_LABEL = "COIN_BATTERY_HEALTHY"
+    CURRENT_SOURCE_LABEL = "Triple_A_ZINC_CARBON_BATTERY"
 
 # ==============================================================================
 # --- LOCAL STORAGE INITIALIZATION ---
