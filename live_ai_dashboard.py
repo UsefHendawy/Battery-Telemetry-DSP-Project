@@ -15,9 +15,6 @@ import matplotlib.gridspec as gridspec
 
 warnings.filterwarnings("ignore")
 
-# ==============================================================================
-# --- SYSTEM CONFIGURATION ---
-# ==============================================================================
 BAUD_RATE = 115200
 UDP_IP = "0.0.0.0"
 UDP_PORT = 5005
@@ -27,7 +24,7 @@ LOG_FILE = "telemetry_run_log.csv"
 
 ser = None
 sock = None
-connection_mode = "SEARCHING"
+connection_mode = "searching..."
 
 ports = [
     p.device for p in serial.tools.list_ports.comports()
@@ -38,7 +35,7 @@ for port in ports:
     try:
         ser = serial.Serial(port, BAUD_RATE, timeout=0.01)
         connection_mode = f"WIRED ({port})"
-        print(f"🔌 Connected to ESP32 on {port}!")
+        print(f"Connected to ESP32 on {port}")
         break
     except:
         ser = None
@@ -49,16 +46,15 @@ if ser is None:
         sock.bind((UDP_IP, UDP_PORT))
         sock.setblocking(False)
         connection_mode = f"WIRELESS (UDP {UDP_PORT})"
-        print(f"📡 Listening on Wireless UDP Port {UDP_PORT}...")
+        print(f"Listening on wireless UDP port {UDP_PORT}...")
     except Exception as e:
-        print(f"🛑 Port Error: {e}")
+        print(f"Port Error: {e}")
         exit()
 
-# Buffers
 ch1_buffer = collections.deque([0.0] * MAX_SAMPLES, maxlen=MAX_SAMPLES)
 ch2_buffer = collections.deque([0.0] * MAX_SAMPLES, maxlen=MAX_SAMPLES)
 voltage_history = collections.deque(maxlen=50)
-current_profile_tag = "WAITING"
+current_profile_tag = "waiting..."
 current_soc_from_esp = 0.0
 
 start_time = time.time()
@@ -73,17 +69,12 @@ if not os.path.exists(LOG_FILE):
             "centroid_hz", "flatness"
         ])
 
-# ==============================================================================
-# --- CLEAN UI LAYOUT (GRIDSPEC ARCHITECTURE) ---
-# ==============================================================================
 plt.style.use('dark_background')
 fig = plt.figure(figsize=(12, 8.5))
 fig.patch.set_facecolor('#0B0E14')
 
-# 3-Row Grid: Top (Cards), Middle (Waveform), Bottom (FFT Spectrum)
 gs = gridspec.GridSpec(3, 2, height_ratios=[1.1, 2.0, 2.0], figure=fig, hspace=0.35, wspace=0.15)
 
-# --- Row 0: Side-by-Side Information Cards ---
 ax_card_left = fig.add_subplot(gs[0, 0])
 ax_card_right = fig.add_subplot(gs[0, 1])
 
@@ -95,19 +86,19 @@ for ax, border_color in [(ax_card_left, '#00FFCC'), (ax_card_right, '#FFCC00')]:
         spine.set_color(border_color)
         spine.set_linewidth(1.5)
 
-# Static Header Labels
-ax_card_left.text(0.05, 0.82, "⚡ CORE CELL TELEMETRY", color='#00FFCC', fontsize=10, fontweight='bold')
-ax_card_right.text(0.05, 0.82, "🔬 REAL-TIME DSP & MOMENTS", color='#FFCC00', fontsize=10, fontweight='bold')
+# Header Labels
+ax_card_left.text(0.05, 0.82, "CORE CELL TELEMETRY", color='#00FFCC', fontsize=10, fontweight='bold')
+ax_card_right.text(0.05, 0.82, "REAL-TIME DSP & MOMENTS", color='#FFCC00', fontsize=10, fontweight='bold')
 
 # Dynamic Value Placeholders
 text_left = ax_card_left.text(0.05, 0.20, "Waiting for device...", color='#E0E6ED', fontsize=9.2, linespacing=1.6)
-text_right = ax_card_right.text(0.05, 0.20, "Initializing DSP...", color='#E0E6ED', fontsize=9.2, linespacing=1.6)
+text_right = ax_card_right.text(0.05, 0.20, "Initializing digital signal processing...", color='#E0E6ED', fontsize=9.2, linespacing=1.6)
 
-# --- Row 1: Time-Domain Voltage Waveform ---
+# Time-Domain Voltage Waveform
 ax_time = fig.add_subplot(gs[1, :])
 ax_time.set_facecolor('#111622')
-line_ch1, = ax_time.plot([], [], color='#00FFCC', lw=1.6, label="Lane 1 (CH1 Low-Volts)")
-line_ch2, = ax_time.plot([], [], color='#FF3366', lw=1.6, label="Lane 2 (CH2 High-Volts)")
+line_ch1, = ax_time.plot([], [], color='#00FFCC', lw=1.6, label="Low voltage lane (CH1)")
+line_ch2, = ax_time.plot([], [], color='#FF3366', lw=1.6, label="High voltage lane (CH2)")
 ax_time.set_ylabel("Potential (V)", color='#A0AEC0', fontsize=9)
 ax_time.set_ylim(0, 11)
 ax_time.set_xlim(0, MAX_SAMPLES)
@@ -115,7 +106,7 @@ ax_time.grid(True, linestyle='--', alpha=0.15, color='#FFFFFF')
 ax_time.legend(loc="upper right", framealpha=0.4, facecolor='#111622', edgecolor='#4A5568', fontsize=8.5)
 ax_time.tick_params(colors='#A0AEC0', labelsize=8)
 
-# --- Row 2: Frequency-Domain Power Spectrum ---
+#Frequency-Domain Power Spectrum
 ax_freq = fig.add_subplot(gs[2, :])
 ax_freq.set_facecolor('#111622')
 line_fft, = ax_freq.plot([], [], color='#FFCC00', lw=1.5, label="Spectral Ripple")
@@ -125,12 +116,10 @@ ax_freq.set_xlim(0, 50)
 ax_freq.grid(True, linestyle='--', alpha=0.15, color='#FFFFFF')
 ax_freq.tick_params(colors='#A0AEC0', labelsize=8)
 
-fig.suptitle(f"SMART BATTERY TELEMETRY & DSP STATION  |  LINK: {connection_mode}", 
+fig.suptitle(f"Battery Telemetry and Digital Signal Processing | Current Link: {connection_mode}", 
              fontsize=12, fontweight='bold', color='#FFFFFF', y=0.98)
 
-# ==============================================================================
-# --- DSP & SOH CALCULATIONS ---
-# ==============================================================================
+# Calculations section for State of Health (SOH) and the Digital Signal Processing (DSP) metrics
 def calculate_physics_soh(p2p, profile):
     if "LI" not in profile:
         return None, "N/A (Primary)"
@@ -176,9 +165,7 @@ def extract_dsp_metrics(time_signal):
 
     return rms, p2p, dv_dt, snr_db, kurtosis, centroid, flatness, fft_freqs, fft_mag
 
-# ==============================================================================
 # --- UPDATE PIPELINE ---
-# ==============================================================================
 def parse_incoming_line(line_str):
     global current_profile_tag, current_soc_from_esp
     line = line_str.strip()
