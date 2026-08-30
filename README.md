@@ -1,4 +1,8 @@
+
+
 ## Table of contents 
+
+
 * [Project Overview](#Project-Overview) 
 * [Key Features & Project Design](#Key-Features--Project-Design)
 * [Repository Structure](#Repository-Structure)
@@ -8,7 +12,15 @@
 * [Development Structure & Phases](#Development-Structure--Phases)
 * [Project Design Evolution & Future Plans](#Project-Design-Evolution--Future-Plans)
 
+<center> 
+
 ## Project Overview
+
+![Overall Wireless Setup](media/Overall%20Project%20Scaled.jpg)
+
+![Overall Wired Setup](media/Wired%20Showcase.gif)
+
+</center>
 
 A wireless computing telemetry system with a diagnostic HUD designed on an ESP32 microcontroller. This project captures the electrochemical fluctuations of various battery cell profiles such as Lithium Ion cells, alkaline cells (double a, triple a, 9V) and a supercapacitor bank via dual analog input paths. Using the information of the electrochemical fluctuations which are usually small micro-voltage changes, this project process time & frequency domain metrics directly on the system while also broadcasting high-speed telemetry UDP packets over a 2.4 GHz Cantenna link (or hollow cylindrical cavity antenna) to a live python diagnostic dashboard. This python dashboard uses the telemetry data to record the values of each battery profile session while also processing other statistical metrics relevant to determining a battery's health as well as looking for early warning signs of a degraded battery. 
 
@@ -18,13 +30,22 @@ The goal of this project was to be able to find the SOC and SOH (when applicable
 * **Target Chemistries:** Li-Ion Pouch / Prismatic, AA/AAA Alkaline, 9V Heavy Duty (Includes both 9V Alkaline & Carbon Zinc), Supercapacitors, 1.5V Carbon Zinc (includes both AA/AAA)
 * **Telemetry Throughput:** 100 Hz broadcast rate over UDP socket
 
+<center> 
+
 ## Key Features & Project Design
+
+</center> 
+
 **Triple-Display OLED HUD:** The intention was to show multiple streams of processed data at the system without needing a dedicated laptop setup each time. 
 **Screen 1:** Profile Selector & A live 16-band Spectral Power Spectrum Display. This displays the background noise affecting the system and the AC ripple from the electrochemical transients of each battery profile.
 **Screen 2:** Real time voltage display and SOC dynamic fuel gauge. 
 **Screen 3:** 4 point DSP diagnostic matrix showing the RMS, Kurtosis, Centroid and Spectral Flatness of the current battery in real time.
 
+<center> 
+
 ## Repository Structure
+
+</center> 
 
 ```text
 ├── lab_data/
@@ -41,7 +62,18 @@ The goal of this project was to be able to find the SOC and SOH (when applicable
 
 ```
 
+
+
+<center> 
+
 ## Hardware Schematic & Pinout Mapping
+
+
+
+![Hardware overview](media/Hardware%20Picture%20Scaled.jpg)
+
+</center>
+
 | Subsystem / Peripheral | ESP32 GPIO | Operating Mode | Hardware Scaling / Multiplier |
 | :--- | :--- | :--- | :--- |
 | **Low-Voltage Channel** | GPIO 34 | Analog In (ADC1_CH6) | 10kΩ / 10kΩ Divider ($2.0\times$ multiplier, 0–4.2V max) |
@@ -53,7 +85,14 @@ The goal of this project was to be able to find the SOC and SOH (when applicable
 
 
 
+<center>  
+
 ## RF Waveguide Design & Physics
+
+![Hardware overview](media/Cantenna.jpg)           ![Hardware overview](media/Cantenna%202.png)
+
+</center>
+
 
 The system is a directional wireless telemetry system and relies on a 'Cantenna' or formally known as a cylindrical cavity waveguide. It operates at the 2.45 GHz ISM band
 
@@ -89,7 +128,16 @@ Lastly the probe itself has to be a proper length to ensure that the data going 
 * To do this, some concepts from the Transmission Line Theory have to be applied. This is a big topic and explains how tranmission lines work, but one of the ideas we use from it is the fact that traveling a quarter length of the free space wavelength creates a 90 degree phase shift. Why this is important is we need to get from maximal voltage level and zero current, to minimal voltage level and high current. Having a low voltage creates as little impedence as possible which allows us to match the impedences of the coaxial cable easily. So using 12.24 cm as our free space wavelength to calculate a probe length of 3.06 cm, we essentially have the wave traveling a quarter phase from the tip of the probe, to the base of the probe. The base of the probe where the coaxial cable gets its data, receives a wave information that is shifted by a half $\pi$ phase where you go from maximal voltage and zero current, to zero voltage and high current which creates near-zero impedence where only the radiation resistance is left. The 50 ohm impedence to match the coaxial cable comes from the radiation impedence that occurs from the electromagnetic energy that surrounds the wire as the current pases through it. This is known as finite radiation resistance and its impedence or resistance value is close to the 50 ohm coaxial cable impedence we need at the base of the probe. 
 
 
+![Cantenna Probe](media/Battery%20Project%20Dashboard%20Picture.png) 
+
+<center> 
+
+
 ## Digital Signal Processign (DSP) and Mathematical Engine
+
+</center> 
+
+
 ### Data Aquisition Pipeline
 ```text
 Raw Analog Potential V(t)
@@ -217,7 +265,11 @@ For single-use batteries they are simply irreversible redox reactions that reduc
 
 Supercapacitors are purely a physical storage of energy by electrostatic attraction. Since supercapacitors do not have a chemical reaction occuring they have a huge operational lifespan, where their downside becomes the fact that the voltage decreases overtime through an exponential voltage drop. 
 
+<center> 
+
 ## Development Structure & Phases
+
+</center> 
 
 ### Phase 0: Research and planning
 - Budgeting out required components of project
@@ -246,7 +298,11 @@ Supercapacitors are purely a physical storage of energy by electrostatic attract
 - Ensuring that the values are accurate, the graphs are working and that the profiles are correctly being recorded. 
 
 
+<center> 
+
 ## Project Design Evolution & Future Plans
+
+</center> 
 
 ### Exploration of the project
 

@@ -121,7 +121,6 @@ void compute_dsp_metrics(int active_pin, float multiplier) {
   
   dsp_kurt = (0.08f * raw_kurt) + (0.92f * dsp_kurt);
 
-  // Hack: using p2p as a cheap proxy for spectral shape here to save CPU cycles.
   // The PC script handles the actual FFT math for these.
   float raw_centroid = 10.0 + (dsp_p2p * 120.0);
   if (raw_centroid > 50.0) raw_centroid = 50.0;
@@ -242,14 +241,14 @@ void loop() {
   float normalized_y = 60.0f - ((filtered_v / active.v_max) * 45.0f);
   if (normalized_y < 15.0f) normalized_y = 15.0f;
   if (normalized_y > 62.0f) normalized_y = 62.0f;
-  wave_buffer[wave_head] = normalized_y;
-  wave_head = (wave_head + 1) % SCREEN_WIDTH;
+  wave_buffer[wave_head] = raw_measured_v;
+  wave_head = (wave_head + 1) % FFT_SAMPLES;
 
   if (profile_locked) {
     int raw1 = analogRead(ADC_CH1_PIN);
     int raw2 = analogRead(ADC_CH2_PIN);
     
-    // TODO: switch to snprintf if String() class causes heap fragmentation over time
+    
     String packet = String(active.tag) + "," + String(raw1) + "," + String(raw2) + "," + String(filtered_soc, 1);
     
     Serial.println(packet);
