@@ -233,7 +233,7 @@ RFFT (Real Fast Fourier Transform)
 | **Spectral Centroid ($f_{\text{c}}$)** | Frequency Domain (FFT Center of Mass) | $$f_{\text{c}} = \frac{\sum f_k \cdot \|X(f_k)\|}{\sum \|X(f_k)\|}$$ | Represents the power-weighted center of mass of the frequency spectrum. Distinguishes slow chemical diffusion ($< 5\text{ Hz}$) from high-frequency electrostatic discharge or switching noise ($> 20\text{ Hz}$). |
 | **Spectral Flatness ($SF$)** | Frequency Domain (Wiener Entropy) | $$SF = \frac{\exp\left(\frac{1}{K}\sum \ln(\|X(f_k)\| + 10^{-10})\right)}{\frac{1}{K}\sum \|X(f_k)\|}$$ | From a range of 0 to 1.0, this value identifies whether the data is clean data or is largely affected by background noise. 0 means its a pure signal and no background noise affects the data, whereas 1.0 means its random data entirely affecte by background noise. |
 | **Drift Velocity ($\frac{dV}{dt}$)** | Time Domain (Calculus) | $$\frac{dV}{dt} = \frac{\Delta V}{\Delta t} \quad [\text{mV/s}]$$ | Instantaneous rate of discharge. Identifies stable flat regions compared to rapid drops into the chemical "discharge knee". |
-| **DC-SNR ($\text{SNR}_{\text{dB}}$)** | Signal Quality | $$\text{SNR}_{\text{dB}} = 20\log_{10}\left(\frac{\mu_V}{\sigma_V}\right)$$ | Measures DC voltage purity relative to baseline AC noise variance ($\sigma_V$). This value degrades as internal contact resistance or EMI increases. |
+| **DC-SNR ($\text{SNR}_{\text{dB}}$)** | Signal Quality |   $$\text{SNR}{\text{dB}} = 20\log{10}\left(\frac{\mu_V}{\sigma_V}\right)$$   | Measures DC voltage purity relative to baseline AC noise variance ($\sigma_V$). This value degrades as internal contact resistance or EMI increases. |
 
 ---
 
