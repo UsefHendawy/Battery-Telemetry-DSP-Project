@@ -28,8 +28,8 @@ const int ADC_CH2_PIN = 35;
 const int BTN_SCROLL  = 25; 
 const int BTN_SELECT  = 27; 
 
-const char *ssid = "ESP32_Telemetry_Node";
-const char *password = "battery123";
+const char *ssid = "ESP32_PROJECT";
+const char *password = "123";
 
 WiFiUDP udp;
 const IPAddress remoteIP(192, 168, 4, 2);
@@ -65,12 +65,9 @@ unsigned long last_screen_update = 0;
 float filtered_v = 0.0;
 float filtered_soc = 0.0;
 
-// Local DSP vars for the OLEDs
 float dsp_rms = 0.0;
 float dsp_p2p = 0.0;
 float dsp_kurt = 3.0;
-float dsp_cent = 10.0;
-float dsp_flat = 0.02;
 
 float read_oversampled_voltage(int pin, float multiplier) {
   long sum = 0;
@@ -81,7 +78,6 @@ float read_oversampled_voltage(int pin, float multiplier) {
   return (((float)sum / 64.0f * 3.3f) / 4095.0f) * multiplier;
 }
 
-// Note: computing metrics locally for the OLED HUD. PC dashboard computes its own.
 void compute_dsp_metrics(int active_pin, float multiplier) {
   float samples[DSP_SAMPLES];
   float sum = 0.0, sum_sq = 0.0;
@@ -115,32 +111,29 @@ void compute_dsp_metrics(int active_pin, float multiplier) {
   for (int i = 0; i < DSP_SAMPLES; i++) {
     m4 += pow(samples[i] - mean, 4);
   }
-  // Added 1e-6 to prevent division by zero
   float raw_kurt = (m4 / DSP_SAMPLES) / (pow(variance, 2) + 1e-6);
   if (raw_kurt > 15.0) raw_kurt = 15.0;
   
   dsp_kurt = (0.08f * raw_kurt) + (0.92f * dsp_kurt);
-
-  // The PC script handles the actual FFT math for these.
-  float raw_centroid = 10.0 + (dsp_p2p * 120.0);
-  if (raw_centroid > 50.0) raw_centroid = 50.0;
-  dsp_cent = (0.10f * raw_centroid) + (0.90f * dsp_cent);
-
-  float raw_flatness = 0.02 + (dsp_p2p * 0.4);
-  if (raw_flatness > 0.99) raw_flatness = 0.99;
-  dsp_flat = (0.10f * raw_flatness) + (0.90f * dsp_flat);
 }
 
-void drawScreen1_FFT() {
+
+void drawScreen1_FFT(int active_pin, float multiplier) {
   double mean_v = 0.0;
+  
+
   for (int i = 0; i < FFT_SAMPLES; i++) {
-    mean_v += wave_buffer[i];
+    float v = ((analogRead(active_pin) * 3.3f) / 4095.0f) * multiplier;
+    vReal[i] = (double)v;
+    vImag[i] = 0.0;
+    mean_v += v;
+    delayMicroseconds(10000); 
   }
   mean_v /= FFT_SAMPLES;
 
+
   for (int i = 0; i < FFT_SAMPLES; i++) {
-    vReal[i] = (double)wave_buffer[i] - mean_v; 
-    vImag[i] = 0.0;
+    vReal[i] -= mean_v; 
   }
 
   FFT.windowing(FFT_WIN_TYP_HAMMING, FFT_FORWARD);
@@ -241,13 +234,12 @@ void loop() {
   float normalized_y = 60.0f - ((filtered_v / active.v_max) * 45.0f);
   if (normalized_y < 15.0f) normalized_y = 15.0f;
   if (normalized_y > 62.0f) normalized_y = 62.0f;
-  wave_buffer[wave_head] = raw_measured_v;
-  wave_head = (wave_head + 1) % FFT_SAMPLES;
+  wave_buffer[wave_head] = normalized_y;
+  wave_head = (wave_head + 1) % SCREEN_WIDTH;
 
   if (profile_locked) {
     int raw1 = analogRead(ADC_CH1_PIN);
     int raw2 = analogRead(ADC_CH2_PIN);
-    
     
     String packet = String(active.tag) + "," + String(raw1) + "," + String(raw2) + "," + String(filtered_soc, 1);
     
@@ -273,7 +265,7 @@ void loop() {
       display1.print("> ");
       display1.println(active.name);
     } else {
-      drawScreen1_FFT();
+      drawScreen1_FFT(active_pin, multiplier);
     }
     display1.display();
 
@@ -316,15 +308,6 @@ void loop() {
     display3.setCursor(0, 30);
     display3.print("KURT: ");
     display3.print(dsp_kurt, 2);
-
-    display3.setCursor(0, 42);
-    display3.print("CENT: ");
-    display3.print(dsp_cent, 1);
-    display3.print(" Hz");
-
-    display3.setCursor(0, 54);
-    display3.print("FLAT: ");
-    display3.print(dsp_flat, 3);
     
     display3.display();
   }
